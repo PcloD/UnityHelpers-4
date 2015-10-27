@@ -36,26 +36,29 @@ public class SplinePath : MonoBehaviour
 		var controlPoints = ControlPoints;
 
 		var prevControlPoint = controlPoints.First();
-		for (int i = 0; i <= controlPoints.Count - 3; i++)
+		for (int i = 0; i <= controlPoints.Count - 4; i++)
 		{
 			Gizmos.DrawWireSphere(controlPoints[i + 1], 0.5f);
 
-			var prev = GetPoint(0, controlPoints.Skip(i).ToArray());
-			
+			var prev = GetSectionPoint(0, controlPoints.Skip(i).ToArray());
+
 			var iterationStep = 1f / ((float)Iterations);
 			for (var j = iterationStep; j < 1f; j += iterationStep)
 			{
-				var travelPoint = GetPoint(j, controlPoints.Skip(i).ToArray());
+				var travelPoint = GetSectionPoint(j, controlPoints.Skip(i).ToArray());
 				Gizmos.DrawLine(prev, travelPoint);
 				prev = travelPoint;
 			}
-			Gizmos.DrawLine(prev, GetPoint(1f, controlPoints.Skip(i).ToArray()));
+			Gizmos.DrawLine(prev, GetSectionPoint(1f, controlPoints.Skip(i).ToArray()));
 		}
+		
+		Gizmos.DrawWireSphere(controlPoints.Last(), 0.5f);
 
-		Gizmos.DrawWireSphere(prevControlPoint, 0.5f);
+		Gizmos.color = Color.yellow;
+		Gizmos.DrawSphere(GetPoint(TrackingPosition), 0.3f);
 	}
 
-	private Vector3 GetPoint(float t, Vector3[] p)
+	private Vector3 GetSectionPoint(float t, Vector3[] p)
 	{
 		var a = 0.5f * (2f * p[1]);
 		var b = 0.5f * (p[2] - p[0]);
@@ -65,5 +68,10 @@ public class SplinePath : MonoBehaviour
 		var pos = a + (b * t) + (c * t * t) + (d * t * t * t);
 
 		return pos;
+	}
+
+	public Vector3 GetPoint(float t)
+	{
+		return Vector3.zero;
 	}
 }
