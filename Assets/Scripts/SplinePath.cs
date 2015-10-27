@@ -8,48 +8,51 @@ public class SplinePath : MonoBehaviour
 	[RangeAttribute(0, 1)]
 	public float TrackingPosition = 0f;
 
+	[RangeAttribute(1, 20)]
+	public int Iterations = 10;
+
 	public List<Vector3> ControlPoints
 	{
 		get
 		{
-			return GetComponentsInChildren<Transform>().Where(t => t != transform).Select(t => t.position).ToList();
+			var points = GetComponentsInChildren<Transform>().Where(t => t != transform).Select(t => t.position).ToList();
+
+			// Project the first point
+			var pre = (points[0] - points[1]).normalized * 1 + points[0];
+			points.Insert(0, pre);
+
+			// project the last point
+			var post = (points[points.Count - 1] - points[points.Count - 2]) * 1 + points[points.Count - 2];
+			points.Add(post);
+
+			return points;
 		}
 	}
 
 	private void OnDrawGizmos()
 	{
-		var cp = ControlPoints;
-
 		Gizmos.color = Color.green;
 
-		if (cp.Count > 1)
+		var controlPoints = ControlPoints;
+
+		var prevControlPoint = controlPoints.First();
+		for (int i = 0; i <= controlPoints.Count - 3; i++)
 		{
-			var prev = cp.First();
-			foreach (var p in cp.Skip(1))
+			Gizmos.DrawWireSphere(controlPoints[i + 1], 0.5f);
+
+			var prev = GetPoint(0, controlPoints.Skip(i).ToArray());
+			
+			var iterationStep = 1f / ((float)Iterations);
+			for (var j = iterationStep; j < 1f; j += iterationStep)
 			{
-				//Gizmos.DrawLine(prev, p);
-				//Gizmos.DrawSphere(p, 0.5f);
-				Gizmos.DrawWireSphere(p, 0.5f);
-				prev = p;
-
-				// draw smooth lines
-
-				var points = ControlPoints.Take(4).ToArray();
-
-				var prevL = GetPoint(0f, points);
-				for (var i = 0.1f; i <= 1f; i += 0.1f)
-				{
-					var s = GetPoint(i, points); // GetPoint(i);
-												 //Gizmos.DrawWireSphere(s, 0.1f);
-					Gizmos.DrawLine(prevL, s);
-					prevL = s;
-				}
-				Gizmos.DrawLine(prevL, GetPoint(1f, points));
+				var travelPoint = GetPoint(j, controlPoints.Skip(i).ToArray());
+				Gizmos.DrawLine(prev, travelPoint);
+				prev = travelPoint;
 			}
+			Gizmos.DrawLine(prev, GetPoint(1f, controlPoints.Skip(i).ToArray()));
 		}
 
-		Gizmos.color = Color.yellow;
-		//Gizmos.DrawSphere(GetPoint(points), 0.4f);
+		Gizmos.DrawWireSphere(prevControlPoint, 0.5f);
 	}
 
 	private Vector3 GetPoint(float t, Vector3[] p)
@@ -63,18 +66,4 @@ public class SplinePath : MonoBehaviour
 
 		return pos;
 	}
-
-	//private Vector3 GetPoint(float t)
-	//{
-	//	var p = ControlPoints;
-
-	//	var a = 0.5f * (2f * p[1]);
-	//	var b = 0.5f * (p[2] - p[0]);
-	//	var c = 0.5f * (2f * p[0] - 5f * p[1] + 4f * p[2] - p[3]);
-	//	var d = 0.5f * (-p[0] + 3f * p[1] - 3f * p[2] + p[3]);
-
-	//	var pos = a + (b * t) + (c * t * t) + (d * t * t * t);
-
-	//	return pos;
-	//}
 }
