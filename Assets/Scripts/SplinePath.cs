@@ -32,14 +32,11 @@ public class SplinePath : MonoBehaviour
 	private void OnDrawGizmos()
 	{
 		Gizmos.color = Color.green;
-
 		var controlPoints = ControlPoints;
-
 		var prevControlPoint = controlPoints.First();
 		for (int i = 0; i <= controlPoints.Count - 4; i++)
 		{
 			Gizmos.DrawWireSphere(controlPoints[i + 1], 0.5f);
-
 			var prev = GetSectionPoint(0, controlPoints.Skip(i).ToArray());
 
 			var iterationStep = 1f / ((float)Iterations);
@@ -102,39 +99,24 @@ public class SplinePath : MonoBehaviour
 	public Vector3 GetPoint(float t)
 	{
 		var cps = ControlPoints;
-
 		var totalLength = GetLengthApproximation(Iterations);
-
 		var timeLength = totalLength * t;
-
 		var runningLength = 0f;
-
-		//Debug.LogFormat("LOOKING FOR {0}/{1}", timeLength, totalLength);
 
 		for (int i = 1; i < cps.Count - 2; i++)
 		{
-			var sectionLength = GetSectionLength(1, cps.Skip(i - 1).Take(4).ToArray());
-
-			//Debug.LogFormat("t={0} i={1}, runlen={2}/{3}, tl={4}/{3}", t, i, runningLength, totalLength, timeLength);
-
-			//Debug.LogFormat("{0}/{1}", runningLength, totalLength);
+			var sectionLength = GetSectionLength(Iterations, cps.Skip(i - 1).Take(4).ToArray());
 
 			if ((runningLength + sectionLength) >= timeLength)
 			{
-				//Debug.LogFormat("Point sits here! {0} - {1}", timeLength, runningLength);
-
 				var diff = (timeLength - runningLength) / (sectionLength);
-
-				//Debug.LogFormat("diff = {0}/{1}", diff, sectionLength);
-
 				var pos = GetSectionPoint(diff, new Vector3[] { cps[i - 1], cps[i], cps[i + 1], cps[i + 2] });
-				//Debug.LogFormat("pos = {0}", pos);
 				return pos;
 			}
 
 			runningLength += sectionLength;
 		}
-		
-		return GetSectionPoint(1f, new Vector3[] { cps[cps.Count - 4], cps[cps.Count - 3], cps[cps.Count - 2], cps[cps.Count-1] });
+
+		return GetSectionPoint(1f, new Vector3[] { cps[cps.Count - 4], cps[cps.Count - 3], cps[cps.Count - 2], cps[cps.Count - 1] });
 	}
 }
