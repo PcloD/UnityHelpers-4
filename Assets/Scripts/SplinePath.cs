@@ -51,11 +51,13 @@ public class SplinePath : MonoBehaviour
 			}
 			Gizmos.DrawLine(prev, GetSectionPoint(1f, controlPoints.Skip(i).ToArray()));
 		}
-		
+
 		Gizmos.DrawWireSphere(controlPoints.Last(), 0.5f);
 
+		// Draw tracking point
 		Gizmos.color = Color.yellow;
-		Gizmos.DrawSphere(GetPoint(TrackingPosition), 0.3f);
+
+		Gizmos.DrawSphere(GetPoint(TrackingPosition), 0.7f);
 	}
 
 	private Vector3 GetSectionPoint(float t, Vector3[] p)
@@ -64,14 +66,75 @@ public class SplinePath : MonoBehaviour
 		var b = 0.5f * (p[2] - p[0]);
 		var c = 0.5f * (2f * p[0] - 5f * p[1] + 4f * p[2] - p[3]);
 		var d = 0.5f * (-p[0] + 3f * p[1] - 3f * p[2] + p[3]);
-
 		var pos = a + (b * t) + (c * t * t) + (d * t * t * t);
-
 		return pos;
+	}
+
+	private float GetLengthApproximation(int divisions)
+	{
+		var pathLength = 0f;
+
+		var cp = ControlPoints;//.Skip(1).ToList();
+		for (int i = 1; i < cp.Count - 2; i++)
+		{
+			pathLength += GetSectionLength(divisions, new Vector3[] { cp[i - 1], cp[i], cp[i + 1], cp[i + 2] });
+		}
+
+		return pathLength;
+	}
+
+	private float GetSectionLength(int divisions, Vector3[] p)
+	{
+		var len = 0f;
+		float stepDist = 0f;
+
+		var prevStep = p[1];
+		for (int i = 0; i < divisions; i++)
+		{
+			stepDist += 1f / ((float)divisions);
+			var newPos = GetSectionPoint(stepDist, p);
+			len += (newPos - prevStep).magnitude;
+			prevStep = newPos;
+		}
+		return len;
 	}
 
 	public Vector3 GetPoint(float t)
 	{
-		return Vector3.zero;
+		var cps = ControlPoints;
+
+		var totalLength = GetLengthApproximation(Iterations);
+
+		var timeLength = totalLength * t;
+
+		var runningLength = 0f;
+
+		//Debug.LogFormat("LOOKING FOR {0}/{1}", timeLength, totalLength);
+
+		for (int i = 1; i < cps.Count - 2; i++)
+		{
+			var sectionLength = GetSectionLength(1, cps.Skip(i - 1).Take(4).ToArray());
+
+			//Debug.LogFormat("t={0} i={1}, runlen={2}/{3}, tl={4}/{3}", t, i, runningLength, totalLength, timeLength);
+
+			//Debug.LogFormat("{0}/{1}", runningLength, totalLength);
+
+			if ((runningLength + sectionLength) >= timeLength)
+			{
+				//Debug.LogFormat("Point sits here! {0} - {1}", timeLength, runningLength);
+
+				var diff = (timeLength - runningLength) / (sectionLength);
+
+				//Debug.LogFormat("diff = {0}/{1}", diff, sectionLength);
+
+				var pos = GetSectionPoint(diff, new Vector3[] { cps[i - 1], cps[i], cps[i + 1], cps[i + 2] });
+				//Debug.LogFormat("pos = {0}", pos);
+				return pos;
+			}
+
+			runningLength += sectionLength;
+		}
+		
+		return GetSectionPoint(1f, new Vector3[] { cps[cps.Count - 4], cps[cps.Count - 3], cps[cps.Count - 2], cps[cps.Count-1] });
 	}
 }
